@@ -39,3 +39,21 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+/src/generated/prisma
+
+# databases
+*.sqlite
+*.sqlite-journal
+*.db
+*.db-journal
+
+# audio files
+**/*.wav
+
+# ML models and virtual environments
+*.onnx
+venv/
+.venv/
+**/venv/
+**/.venv/

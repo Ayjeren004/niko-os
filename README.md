@@ -1,36 +1,77 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Niko OS
+
+A local, privacy-first personal AI assistant built for the desktop web. 
+
+Niko OS orchestrates tasks, notes, documents, and real-time voice/vision pipelines locally on your machine. Everything runs 100% offline, keeping your data private.
+
+## Key Features
+
+### 1. Offline & Private by Design
+No external API calls are made. Niko OS uses Ollama for local LLM reasoning (Llama 3.2), memory extraction, and vector embeddings (nomic-embed-text) to keep all interactions completely private.
+
+### 2. Local Vision Pipeline
+A real-time vision mode that connects to your local webcam using the browser's Picture-in-Picture API. When enabled, frames are securely captured and analyzed using a local LLaVA model running via Ollama. 
+
+### 3. Voice Activity Detection (VAD) & Text-to-Speech (TTS)
+- **Voice Activity Detection**: Uses a WebAssembly port of the Silero VAD engine to detect speech boundaries in the browser.
+- **Local Transcription**: Transcribes audio using a local Whisper model (`@xenova/transformers` base model).
+- **Expressive Speech Synthesis**: Generates emotional and natural speech locally via Kokoro TTS running in an ONNX runtime, dynamically reacting to text punctuation for human-like inflection.
+
+### 4. Automated Memory Extraction
+During chat, a background worker parses conversation logs to extract facts, preferences, and context. These are saved in a local SQLite database and retrieved semantically via vector similarity search to enrich future prompts.
+
+### 5. Encrypted Context Backups
+Supports exporting user profile context, tasks, memories, and documents into a secure snapshot encrypted with AES-256-GCM.
+
+### 6. Recruiter Demo Mode
+A safe execution mode designed for live demonstrations. When active, system-modifying actions are mocked on the backend, allowing recruiters to test function-calling reasoning without altering the database.
+
+## Technical Stack
+
+- **Frontend**: Next.js, React, Tailwind CSS
+- **Database**: SQLite, Prisma ORM
+- **Local AI Core**: Ollama (Llama 3.2, LLaVA, nomic-embed-text), `@xenova/transformers` (Whisper), Kokoro ONNX
+
+---
+
+## Technical Challenges & Implementations
+
+### Low-Latency Voice Pipeline
+Connecting browser audio inputs, WASM voice activity detection, local Whisper transcription, Ollama inference, and Kokoro speech generation introduces significant latency. I resolved this by wrapping the Kokoro python subprocess in a stream handler and caching files in the system temp directory, yielding near real-time response audio.
+
+### Resource Lifecycle Management
+Webcam and microphone tracks must be handled carefully to avoid keeping the hardware active when not in use. I implemented strict cleanup hooks (`MediaStreamTrack.stop()`) on React component unmounts to ensure the camera shuts down immediately when vision mode is turned off.
+
+---
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
+1. Node.js (v20+)
+2. Ollama installed locally
 
+### Setup Models
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+ollama pull llama3.2
+ollama pull llava
+ollama pull nomic-embed-text
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### Installation
+1. Clone the repository and install dependencies:
+```bash
+git clone <repository-url>
+cd niko-os
+npm install
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+2. Run database migrations:
+```bash
+npx prisma generate
+npx prisma db push
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+3. Start the dev server:
+```bash
+npm run dev
+```

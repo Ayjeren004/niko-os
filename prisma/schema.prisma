@@ -1,0 +1,140 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String         @id @default(uuid())
+  username      String         @unique @default("admin")
+  password      String         @default("placeholder")
+  createdAt     DateTime       @default(now())
+  conversations Conversation[]
+  memories      Memory[]
+  tasks         Task[]
+  documents     Document[]
+  briefings        Briefing[]
+  auditLogs        AuditLog[]
+  workflowSettings String         @default("{}")
+  searchIndices    SearchIndex[]
+}
+
+model Conversation {
+  id        String    @id @default(uuid())
+  title     String?
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages  Message[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Message {
+  id             String       @id @default(uuid())
+  role           String       // 'user' or 'assistant'
+  content        String
+  toolCalls      String?      // JSON string of executed tools
+  modelUsed      String?      // Model used to generate this message
+  contextRefs    String?      // JSON array of references used for this message
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  feedback       MessageFeedback?
+  createdAt      DateTime     @default(now())
+}
+
+model MessageFeedback {
+  id        String   @id @default(uuid())
+  messageId String   @unique
+  message   Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  rating    Int      // 1 for thumbs up, -1 for thumbs down
+  text      String?  // Optional feedback text
+  createdAt DateTime @default(now())
+}
+
+model Memory {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  content        String
+  category       String?  @default("general") // Can be "people", "projects", "goals", "general"
+  embedding      String?  // Serialized JSON array of floats
+  embeddingModel String?  // The model used to generate this embedding
+  isOutdated     Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model Task {
+  id             String    @id @default(uuid())
+  userId         String
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title          String
+  description    String?
+  dueDate        String?
+  reminderAt     DateTime?
+  reminderStatus String    @default("pending") // 'pending', 'sent', 'dismissed'
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+}
+
+model Document {
+  id        String          @id @default(uuid())
+  userId    String
+  user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fileName  String
+  fileSize  Int
+  createdAt DateTime        @default(now())
+  chunks    DocumentChunk[]
+}
+
+model DocumentChunk {
+  id         String   @id @default(uuid())
+  documentId     String
+  document       Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  content        String
+  embedding      String?  // Serialized JSON array of floats
+  embeddingModel String?  // The model used to generate this embedding
+}
+
+model Briefing {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  content   String
+  date      String   // YYYY-MM-DD
+  createdAt DateTime @default(now())
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  skill     String   // e.g. "notes_skill", "system"
+  action    String   // e.g. "createNote", "error"
+  args      String?  // JSON string of input args
+  result    String?  // JSON string or text of output
+  status    String   // "auto-run", "confirmed", "canceled", "failed"
+  createdAt DateTime @default(now())
+}
+
+model SearchIndex {
+  id             String   @id @default(uuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sourceType     String   // "memory", "task", "document", "briefing", "conversation", "auditLog"
+  sourceId       String   // The ID of the original record
+  content        String   // The searchable text representation
+  embedding      String?  // JSON array of floats
+  embeddingModel String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([userId, sourceType])
+  @@unique([sourceType, sourceId])
+}

@@ -1,0 +1,5 @@
+public/vad.worklet.bundle.dev.js
+public/vad.worklet.bundle.min.js
+public/ort-wasm-threaded.worker.js
+public/real-time-vad.js
+public/utils.js
